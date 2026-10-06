@@ -13,3 +13,15 @@ For each run record date, Git commit, base model, adapter/version, dataset versi
 - Result: 11/30 correct (36.7%); mean manual score 1.07/2. See `reports/baseline_summary.md` and per-task score notes.
 - Observations: strongest on small multi-file changes (3/4); no fully correct unit-test response (0/4). Some outputs contain code that cannot compile or misses explicit constraints. The Java Unicode response was truncated.
 - Decision: preserve this baseline and task definition before any real training. A tiny pipeline smoke run may follow. Do not infer adapter quality from this baseline alone.
+
+## 2026-10-06: tiny QLoRA pipeline smoke run
+
+- Git commit: `8c375ac` at the time of the run
+- Base model: local `mlx-community/Qwen2.5-Coder-7B-Instruct-4bit`
+- Adapter: `adapters/smoke`; local artifact, not committed
+- Dataset: 14 train, 3 validation, 3 test pipeline examples
+- Training parameters: LoRA on 16 layers, rank 8, batch size 1, learning rate `1e-5`, maximum sequence length 2048, prompt masking, 5 iterations
+- Validation result: loss 1.383 at iteration 1 and 0.641 at iteration 5; final reported train loss 1.202
+- Benchmark result: not run with the smoke adapter
+- Observations: training completed on Apple M2 with Metal available. The saved adapter loaded for inference and answered an underspecified Python-function prompt by requesting details. This verifies the pipeline, not coding quality.
+- Decision: smoke training and adapter inference are complete. Curate the first credible dataset before the real V1 run; do not infer improvement from the five-step losses.
