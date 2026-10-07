@@ -2,6 +2,13 @@
 
 For each run record date, Git commit, base model, adapter/version, dataset version and counts, training parameters, validation result, benchmark result, observations, and decision. Record failures too.
 
+## 2026-10-07: training paused for local model selection
+
+- Decision: pause custom training while evaluating available local coding models on realistic repository tasks.
+- Preserve the frozen 30-task baseline, dataset, adapter work, and runnable training script for a possible later experiment.
+- New model-selection results belong under `results/`; a final decision remains pending candidate model runs.
+- The installed Qwen2.5-Coder-7B workflow run could not start in this execution session because MLX reported no Metal device. Harness tests exercised all ten repository fixtures with a stub model; no real-model quality result was recorded.
+
 ## 2026-10-06: untouched base benchmark
 
 - Git commit: `d0d8a2fae26bcfb6e7ae4b3e61601171cdf31f9c`

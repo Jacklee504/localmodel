@@ -1,4 +1,22 @@
-# Local Coder V1
+# Local Coder
+
+**Training status: paused pending evaluation of existing local models.** The V1 training script and frozen 30-task benchmark are preserved for possible later use.
+
+The practical model-selection suite is in [tasks/README.md](tasks/README.md), with its method in [docs/evaluation_method.md](docs/evaluation_method.md). Configure a locally installed model or running OpenAI-compatible endpoint in `config/models.json`. No weights are downloaded automatically.
+
+```sh
+.venv/bin/python scripts/evaluate.py tasks
+.venv/bin/python scripts/evaluate.py run --model qwen25_7b --mode response
+.venv/bin/python scripts/evaluate.py run --model qwen25_7b --mode repo
+.venv/bin/python scripts/evaluate.py score results/qwen25_7b/RUN_ID --task config-parse --score 1 --notes 'Missing validation' --failure 'ignored requirement' --corrections 0
+.venv/bin/python scripts/evaluate.py compare results/qwen25_7b/RUN_A results/qwen35_9b/RUN_B --output reports/comparison.md
+```
+
+Each run has a unique directory under `results/`. Repository mode validates applied changes in a temporary fixture copy and captures a diff. Response mode records text and timing only. Scores are entered manually. Comparison requires matching suites and modes; see [reports/model_selection.md](reports/model_selection.md) for the pending final decision.
+
+## Earlier V1 experiment
+
+The commands below document the earlier experiment. Training is paused; do not run the training step while evaluating existing models.
 
 A small QLoRA experiment for `mlx-community/Qwen2.5-Coder-7B-Instruct-4bit` on Apple Silicon. The frozen benchmark is separate from the training, validation and test splits. See [the handoff](docs/local_coder_v1_implementation_handoff.md) for the research question.
 
