@@ -1,0 +1,8 @@
+{
+  "models": {
+    "qwen25_7b": {"name": "Qwen2.5-Coder-7B-Instruct-4bit", "provider": "mlx", "path": "models/qwen2.5-coder-7b-instruct-4bit", "quantization": "4-bit", "runtime": "mlx-lm"},
+    "qwen35_9b": {"name": "Qwen3.5-9B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3.5-9b", "quantization": null, "runtime": null},
+    "qwen38_27b": {"name": "Qwen3.8-27B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3.8-27b", "quantization": null, "runtime": null},
+    "qwen3_coder_30b": {"name": "Qwen3-Coder-30B-A3B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3-coder-30b-a3b", "quantization": null, "runtime": null}
+  }
+}
