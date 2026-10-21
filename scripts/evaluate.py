@@ -17,6 +17,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import evalcore
+import evalcompare
+import evalrepair
 import evalreport
 from evalcore import (
     EvaluationError,
@@ -313,6 +315,7 @@ def run_agent_task(task, config, timeout_seconds):
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.class", HIDDEN_DIR),
         )
         agent = execute_agent(task, config, workspace, timeout_seconds)
+        editable = set(task["editable"])
         before = {}
         for name in task["editable"]:
             source = fixture / name
@@ -322,6 +325,26 @@ def run_agent_task(task, config, timeout_seconds):
             target = workspace / name
             if target.is_file():
                 changes[name] = target.read_text(encoding="utf-8", errors="replace")
+        modified = []
+        unexpected = []
+        for path in sorted(workspace.rglob("*")):
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            relative = str(path.relative_to(workspace))
+            if relative.startswith("."):
+                continue
+            source = fixture / relative
+            current = path.read_text(encoding="utf-8", errors="replace")
+            if not source.is_file():
+                unexpected.append(relative)
+            elif source.read_text(encoding="utf-8", errors="replace") != current:
+                modified.append(relative)
+        for name in list(modified):
+            if name not in editable:
+                modified.remove(name)
+                unexpected.append(name)
+        unexpected = [name for name in unexpected if name not in editable]
+        untouched = sorted(editable - set(modified))
         diff = "".join(
             "".join(
                 difflib.unified_diff(
@@ -344,11 +367,17 @@ def run_agent_task(task, config, timeout_seconds):
             {
                 "changes": changes,
                 "diff": diff,
+                "modified_files": modified,
+                "untouched_files": untouched,
+                "unexpected_paths": unexpected,
                 "validation": public,
                 "withheld_validation": withheld,
                 "validation_passed": passed,
             }
         )
+        if unexpected:
+            agent["failure_kind"] = "disallowed_path"
+            agent["error"] = "Agent changed paths outside the allowlist: " + ", ".join(unexpected)
         return agent
 
 
@@ -548,7 +577,13 @@ def run_attempt(args, config, tasks, suite_digest, attempt_index, batch_id):
                     "warning": None,
                 }
                 if not record["agent"]["validation_passed"]:
-                    record["failure_kind"] = "validation_failed"
+                    record["failure_kind"] = record["agent"].get(
+                        "failure_kind", "validation_failed"
+                    )
+                    if record["failure_kind"] == "disallowed_path":
+                        record["error"] = record["agent"].get("error")
+                    else:
+                        record["failure_kind"] = "validation_failed"
             else:
                 answer, reasoning, timings = model.generate(
                     prompt, common, model_settings, args.timeout_seconds
@@ -570,6 +605,26 @@ def run_attempt(args, config, tasks, suite_digest, attempt_index, batch_id):
             record["failure_kind"] = "http_error"
             record["error"] = f"Agent invocation failed: {exc}"
         record["wall_seconds"] = round(time.perf_counter() - started, 3)
+        if (
+            args.mode == "repo"
+            and args.repair_attempts
+            and record["failure_kind"] in ("validation_failed", "unparseable", "protocol_violation")
+        ):
+            attempts = evalrepair.run_repair_loop(
+                task, model, common, model_settings, args.timeout_seconds,
+                args.repair_attempts, record,
+            )
+            record["repair"] = {"attempt_count": len(attempts), "attempts": attempts}
+            final = attempts[-1] if attempts else None
+            if final and final["failure_kind"] == "none":
+                record["response"] = final.get("answer") or record.get("response")
+                record["repo"] = final.get("repo")
+                record["failure_kind"] = "none"
+                record["error"] = None
+                record["timings"] = final.get("timings") or record.get("timings")
+            elif final:
+                record["failure_kind"] = final["failure_kind"]
+                record["error"] = final.get("error")
         write_json(directory / (task["id"] + ".json"), record)
         status = record["failure_kind"] if record["failure_kind"] != "none" else "saved"
         print(f"{index}/{len(tasks)} {task['id']}: {status}", flush=True)
@@ -642,6 +697,13 @@ def compare(args):
     if getattr(args, "legacy", False):
         return compare_legacy(runs, args)
     check_comparable(first, [meta for meta, _ in runs[1:]])
+    return evalcompare.build_report(runs, args.output)
+
+
+def compare_old(args):
+    """The previous single-table report, kept for reference."""
+    runs = [summarize(Path(name)) for name in args.runs]
+    first = runs[0][0]
     lines = [f"# Local model comparison ({first['mode']})", ""]
     lines += ["## Run identity", "", "| Field | " + " | ".join(
         meta["model_key"] for meta, _ in runs) + " |", "|---|" + "---:|" * len(runs)]

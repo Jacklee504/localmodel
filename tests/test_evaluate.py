@@ -267,8 +267,10 @@ class RunAndReportTests(unittest.TestCase):
             output = Path(folder) / "comparison.md"
             evaluate.compare(SimpleNamespace(runs=[str(run_path)], output=str(output)))
             text = output.read_text()
-            self.assertIn("Unscored | 1", text)
-            self.assertNotIn("Validation passing", text)
+            self.assertIn("Manually reviewed | 0/1", text)
+            self.assertIn("Mode: response", text)
+            self.assertNotIn("Validation-passing attempts", text)
+            self.assertIn("1 unscored record(s)", text)
 
     def test_full_repository_suite_records_every_validation(self):
         class FakeModel:
@@ -308,9 +310,11 @@ class RunAndReportTests(unittest.TestCase):
             output = Path(folder) / "comparison.md"
             evaluate.compare(SimpleNamespace(runs=[str(run_path)], output=str(output)))
             text = output.read_text()
-            self.assertIn("Validation passing", text)
-            self.assertIn("Failure modes", text)
-            self.assertIn("Context required", text)
+            self.assertIn("Validation-passing attempts", text)
+            self.assertIn("Failure-mode breakdown", text)
+            self.assertIn("context requirement", text)
+            self.assertIn("Category breakdown", text)
+            self.assertIn("Requirement failure categories", text)
 
 
 if __name__ == "__main__":
