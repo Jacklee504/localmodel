@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import evalcore
+import evalreport
 from evalcore import (
     EvaluationError,
     ModelFailure,
@@ -844,6 +845,13 @@ def main():
     scoring.add_argument("--reviewer", default=None)
     models = commands.add_parser("models")
     models.add_argument("--model")
+    sheet = commands.add_parser("score-sheet")
+    sheet.add_argument("sheet")
+    sheet.add_argument("--dry-run", action="store_true")
+    sheet.add_argument("--replace", action="store_true")
+    export = commands.add_parser("export")
+    export.add_argument("run")
+    export.add_argument("--output", required=True)
     comparison = commands.add_parser("compare")
     comparison.add_argument("runs", nargs="+")
     comparison.add_argument("--output")
@@ -874,6 +882,10 @@ def main():
             run(args)
         elif args.command == "score":
             score(args)
+        elif args.command == "score-sheet":
+            evalreport.score_sheet(args.sheet, dry_run=args.dry_run, replace=args.replace)
+        elif args.command == "export":
+            evalreport.export_run(args.run, args.output)
         else:
             compare(args)
     except EvaluationError as exc:

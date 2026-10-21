@@ -227,11 +227,41 @@ def print_summary(summary, model_key):
             print("  failures          " + ", ".join(parts))
     print()
     print("Scores are still manual. Record them with:")
+    print("  .venv/bin/python scripts/benchmark.py --model " + model_key
+          + " --suites <name> --write-score-sheet reports/sheets/" + model_key + ".json")
+    print("  (or write the sheet by hand in the documented format)")
     print("  .venv/bin/python scripts/evaluate.py score results/" + model_key + "/RUN_ID \\")
     print("    --task TASK_ID --score 0|1|2 --notes '...' --reviewer local-user")
     print("Then compare candidates with:")
     print("  .venv/bin/python scripts/evaluate.py compare RUN_A RUN_B "
           "--output reports/comparison.md")
+
+
+def write_score_sheet(directories, model_key, path):
+    """Write a score sheet template covering every task in the runs."""
+    items = []
+    seen = set()
+    for directory in directories:
+        metadata_path = directory / "metadata.json"
+        if not metadata_path.is_file():
+            continue
+        metadata = evalcore.read_json(metadata_path)
+        for task_id in metadata.get("comparison_key", {}).get("task_ids") or []:
+            if task_id in seen:
+                continue
+            seen.add(task_id)
+            items.append({
+                "task": task_id,
+                "score": None,
+                "notes": "",
+                "requirement_failures": [],
+                "additional_prompts": None,
+                "reviewer": None,
+            })
+    sheet = {"schema_version": 1, "run": str(directories[0]), "items": items}
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(json.dumps(sheet, indent=2), encoding="utf-8")
+    return path
 
 
 def main():
@@ -247,6 +277,8 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=None)
     parser.add_argument("--timeout-seconds", type=int, default=3600)
     parser.add_argument("--report", help="Write the JSON summary to this path")
+    parser.add_argument("--write-score-sheet", dest="write_score_sheet",
+                        help="Write a score sheet template to this path")
     args = parser.parse_args()
 
     try:
@@ -298,6 +330,13 @@ def main():
         path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print()
         print("Summary written to " + str(path))
+
+    if args.write_score_sheet and all_directories:
+        path = write_score_sheet(all_directories, args.model, args.write_score_sheet)
+        print()
+        print("Score sheet written to " + str(path))
+        print("Fill in the scores, then run:")
+        print("  .venv/bin/python scripts/evaluate.py score-sheet " + str(path))
 
     print()
     print("Finished: " + datetime.now(timezone.utc).isoformat())
