@@ -3,6 +3,31 @@
 This runbook evaluates a candidate model end to end on this machine. It assumes the
 harness is already working and that you have chosen one candidate.
 
+## The short version
+
+```sh
+ollama pull gpt-oss:20b
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b
+```
+
+That is the whole benchmark. The runner checks the model is present, checks the served
+context, runs the suites, writes a summary, and tells you how to score the results.
+It never downloads weights and never deletes anything.
+
+To benchmark one area:
+
+```sh
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b --suites complex
+```
+
+To run everything three times for stability:
+
+```sh
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b --repeats 3
+```
+
+The rest of this document explains what the runner does and what to do around it.
+
 ## Before you start
 
 Check free disk space. You need the model weights plus room for the run results.
@@ -83,6 +108,14 @@ can tell whether the run caused swapping. Note the swap figure now.
 
 ## 5. Run the suite
 
+The runner does this for you:
+
+```sh
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b
+```
+
+The commands below are what it runs underneath, if you want to run one piece directly.
+
 Full repository evaluation, one attempt:
 
 ```sh
@@ -113,10 +146,13 @@ Useful flags:
 
 | Flag | Default | Notes |
 |---|---|---|
-| `--max-tokens N` | from the model config, 8192 for candidates | Do not change it between candidates. It is part of the comparison key. |
+| `--max-tokens N` | from the model config, 32768 for candidates | Do not change it between candidates. It is part of the comparison key. |
+| `--suites NAMES` | `all` | Comma-separated suite names. See [docs/suites.md](suites.md). |
+| `--mode MODE` | `repo` | `repo`, `response`, or `both`. |
 | `--repeats N` | 1 | Each attempt gets its own run directory. |
 | `--timeout-seconds N` | 3600 | Raise it for a slow dense model. |
 | `--task ID` | all tasks | Repeat the flag to select several. |
+| `--report PATH` | none | Write the JSON summary to a file. |
 
 ## 6. Watch the run
 

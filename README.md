@@ -4,11 +4,20 @@
 
 The practical model-selection suite is in [tasks/README.md](tasks/README.md), with its method in [docs/evaluation_method.md](docs/evaluation_method.md). Configure a locally installed model or running OpenAI-compatible endpoint in [config/models.json](config/models.json). No weights are downloaded automatically.
 
-**To evaluate a candidate model, follow [docs/nightly_runbook.md](docs/nightly_runbook.md).** It covers pulling the model, setting the context length, verifying the served context, running the suite, scoring, comparing, and reclaiming disk.
+**To evaluate a candidate model, run one command:**
+
+```sh
+ollama pull gpt-oss:20b
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b
+```
+
+That checks the model is present, checks the served context, runs the suites, and prints a summary. It never downloads weights and never deletes anything. See [docs/nightly_runbook.md](docs/nightly_runbook.md) for the full procedure and [docs/suites.md](docs/suites.md) for what each suite covers.
 
 ```sh
 .venv/bin/python scripts/evaluate.py tasks
+.venv/bin/python scripts/evaluate.py suites
 .venv/bin/python scripts/evaluate.py models
+.venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode repo --suite complex
 .venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode repo --repeats 3
 .venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode agent --task result-summary
 .venv/bin/python scripts/evaluate.py score results/gpt_oss_20b/RUN_ID --task config-parse --score 1 --notes 'Missing validation' --failure ignored_requirement --additional-prompts 0 --reviewer local-user
