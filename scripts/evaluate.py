@@ -30,6 +30,7 @@ from evalcore import (
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = ROOT / "tasks/core.json"
 MODELS = ROOT / "config/models.json"
+SUITES = ROOT / "config/suites.json"
 RESULTS = ROOT / "results"
 HIDDEN_DIR = "hidden"
 
@@ -75,6 +76,39 @@ def load_tasks():
             if not isinstance(command, list) or not command or not all(isinstance(x, str) for x in command):
                 raise ValueError(f"Invalid validation command in {task_id}")
     return tasks
+
+
+def load_suites():
+    data = evalcore.read_json(SUITES)
+    version = data.get("schema_version")
+    if version != 1:
+        raise EvaluationError(
+            f"Unsupported suites schema_version {version!r}. This harness supports version 1."
+        )
+    suites = data.get("suites")
+    if not isinstance(suites, dict) or not suites:
+        raise EvaluationError("config/suites.json must contain a 'suites' object")
+    return suites
+
+
+def resolve_suite(name, tasks):
+    """Return the tasks in a named suite, preserving the suite's declared order."""
+    suites = load_suites()
+    if name not in suites:
+        known = ", ".join(sorted(suites))
+        raise EvaluationError(f"Unknown suite {name!r}. Available suites: {known}")
+    entry = suites[name]
+    wanted = entry.get("tasks") or []
+    if "*" in wanted:
+        return list(tasks)
+    available = {task["id"] for task in tasks}
+    missing = [task_id for task_id in wanted if task_id not in available]
+    if missing:
+        raise EvaluationError(
+            f"Suite {name!r} refers to tasks that do not exist: {', '.join(missing)}"
+        )
+    by_id = {task["id"]: task for task in tasks}
+    return [by_id[task_id] for task_id in wanted]
 
 
 def suite_hash(tasks):
@@ -543,6 +577,8 @@ def run_attempt(args, config, tasks, suite_digest, attempt_index, batch_id):
 
 def run(args):
     tasks = load_tasks()
+    if args.suite:
+        tasks = resolve_suite(args.suite, tasks)
     if args.task:
         tasks = [task for task in tasks if task["id"] == args.task]
         if not tasks:
@@ -787,10 +823,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("tasks")
+    commands.add_parser("suites")
     runner = commands.add_parser("run")
     runner.add_argument("--model", required=True)
     runner.add_argument("--mode", choices=("response", "repo", "agent"), required=True)
     runner.add_argument("--task")
+    runner.add_argument("--suite", help="Run a named suite from config/suites.json")
     runner.add_argument("--max-tokens", type=int, default=None)
     runner.add_argument("--repeats", type=int, default=1)
     runner.add_argument("--timeout-seconds", type=int, default=3600)
@@ -815,6 +853,15 @@ def main():
         if args.command == "tasks":
             for task in load_tasks():
                 print(f"{task['id']}: {task['title']} ({task['category']})")
+        elif args.command == "suites":
+            suites = load_suites()
+            all_tasks = load_tasks()
+            for key in sorted(suites):
+                entry = suites[key]
+                count = len(resolve_suite(key, all_tasks))
+                print(f"{key}: {entry.get('name')} ({count} tasks)")
+                if entry.get("description"):
+                    print(f"  {entry['description']}")
         elif args.command == "models":
             list_models(args.model)
         elif args.command == "run":

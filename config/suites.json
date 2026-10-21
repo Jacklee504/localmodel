@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "suites": {
+    "all": {
+      "name": "Every task",
+      "description": "The complete practical suite. Use this for the final comparison.",
+      "tasks": ["*"]
+    },
+    "implementation": {
+      "name": "Implementation",
+      "description": "Writing new behaviour into an existing file against a stated requirement.",
+      "tasks": [
+        "config-parse",
+        "result-summary",
+        "api-key",
+        "capts-risk-score",
+        "capts-change-event"
+      ]
+    },
+    "complex": {
+      "name": "Complex file implementation",
+      "description": "Implementing a whole module, including its types, from a specification. The hardest single-pass work.",
+      "tasks": [
+        "capts-model",
+        "capts-risk-score",
+        "capts-change-event"
+      ]
+    },
+    "debugging": {
+      "name": "Debugging",
+      "description": "Finding and fixing a defect, sometimes starting from an observed failure.",
+      "tasks": [
+        "cache-leak",
+        "retry-final",
+        "capts-cache-key"
+      ]
+    },
+    "documentation": {
+      "name": "Documentation",
+      "description": "Explaining existing code accurately in prose, and writing API documentation from a specification.",
+      "tasks": [
+        "capts-document-module",
+        "capts-write-docstring"
+      ]
+    },
+    "tests": {
+      "name": "Test writing",
+      "description": "Writing tests that pin down behaviour, including edge cases.",
+      "tasks": [
+        "score-tests",
+        "capts-test-model"
+      ]
+    },
+    "refactoring": {
+      "name": "Refactoring",
+      "description": "Restructuring existing code without changing behaviour.",
+      "tasks": [
+        "user-validation",
+        "capts-dedupe-severity"
+      ]
+    },
+    "web": {
+      "name": "TypeScript and web",
+      "description": "JavaScript and TypeScript behaviour, including async control flow.",
+      "tasks": [
+        "web-search",
+        "capts-normalise-deal"
+      ]
+    },
+    "java": {
+      "name": "Java",
+      "description": "Java collections and language semantics.",
+      "tasks": ["java-names"]
+    },
+    "specification": {
+      "name": "Specification following",
+      "description": "Implementing a detailed written specification, where requirement adherence is the whole task.",
+      "tasks": [
+        "task-loader",
+        "capts-change-event"
+      ]
+    },
+    "difficult": {
+      "name": "Difficult tasks",
+      "description": "The pre-registered difficult subset. Frozen before any candidate was scored.",
+      "tasks": [
+        "cache-leak",
+        "retry-final",
+        "api-key",
+        "task-loader",
+        "capts-model",
+        "capts-risk-score"
+      ]
+    },
+    "routine": {
+      "name": "Routine tasks",
+      "description": "The pre-registered routine subset. Frozen before any candidate was scored.",
+      "tasks": [
+        "result-summary",
+        "score-tests",
+        "web-search",
+        "java-names",
+        "user-validation"
+      ]
+    },
+    "quick": {
+      "name": "Quick check",
+      "description": "A short subset for a fast sanity check that the harness works. Not a quality signal.",
+      "tasks": [
+        "result-summary",
+        "cache-leak",
+        "api-key"
+      ]
+    }
+  }
+}

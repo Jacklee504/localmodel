@@ -132,8 +132,48 @@ class ConfigTests(unittest.TestCase):
             self.assertIn(key, data["models"])
             config = data["models"][key]
             self.assertEqual(config["base_url"], "http://127.0.0.1:11434/v1")
-            self.assertEqual(config["generation"]["common"]["max_tokens"], 8192)
+            self.assertEqual(config["generation"]["common"]["max_tokens"], 32768)
             self.assertEqual(config["context"]["num_ctx"], 64000)
+
+    def test_all_candidates_share_one_token_budget(self):
+        data = evalcore.read_json(evaluate.MODELS)
+        budgets = {
+            config["generation"]["common"]["max_tokens"]
+            for key, config in data["models"].items()
+            if key != "qwen25_7b"
+        }
+        self.assertEqual(len(budgets), 1, "candidates must share one max_tokens budget")
+
+    def test_suites_are_valid_and_resolvable(self):
+        suites = evaluate.load_suites()
+        tasks = evaluate.load_tasks()
+        for name, entry in suites.items():
+            self.assertTrue(entry.get("name"), name)
+            self.assertTrue(entry.get("description"), name)
+            resolved = evaluate.resolve_suite(name, tasks)
+            self.assertTrue(resolved, name)
+
+    def test_every_task_belongs_to_at_least_one_suite(self):
+        suites = evaluate.load_suites()
+        tasks = evaluate.load_tasks()
+        covered = set()
+        for name in suites:
+            covered.update(task["id"] for task in evaluate.resolve_suite(name, tasks))
+        for task in tasks:
+            self.assertIn(task["id"], covered, f"{task['id']} is in no suite")
+
+    def test_the_all_suite_covers_every_task(self):
+        tasks = evaluate.load_tasks()
+        resolved = evaluate.resolve_suite("all", tasks)
+        self.assertEqual(len(resolved), len(tasks))
+
+    def test_unknown_suite_is_rejected(self):
+        with self.assertRaises(evalcore.EvaluationError):
+            evaluate.resolve_suite("does-not-exist", evaluate.load_tasks())
+
+    def test_suite_referring_to_a_missing_task_is_rejected(self):
+        with self.assertRaises(evalcore.EvaluationError):
+            evaluate.resolve_suite("difficult", [{"id": "other", "title": "t"}])
 
     def test_unknown_provider_is_rejected(self):
         with self.assertRaises(evalcore.EvaluationError):
@@ -215,6 +255,7 @@ class RunAndReportTests(unittest.TestCase):
             args = SimpleNamespace(
                 model="gpt_oss_20b", mode="response", task="api-key", max_tokens=None,
                 repeats=1, timeout_seconds=3600, repair_attempts=0,
+                suite=None,
                 _run_id="20260101T000000000000Z",
             )
             evaluate.run(args)
@@ -251,6 +292,7 @@ class RunAndReportTests(unittest.TestCase):
             args = SimpleNamespace(
                 model="gpt_oss_20b", mode="repo", task=None, max_tokens=None,
                 repeats=1, timeout_seconds=3600, repair_attempts=0,
+                suite=None,
                 _run_id="20260101T000000000000Z",
             )
             evaluate.run(args)
