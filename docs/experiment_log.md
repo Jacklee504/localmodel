@@ -2,6 +2,110 @@
 
 For each run record date, Git commit, base model, adapter/version, dataset version and counts, training parameters, validation result, benchmark result, observations, and decision. Record failures too.
 
+## 2026-10-21: cloud ceiling reference and live endpoint probes
+
+- Decision: use the remaining `minimax-m3.1-flash:cloud` access window to calibrate the
+  evaluation method before downloading the larger local models. No weights were
+  downloaded. No training was started. The frozen 30-task benchmark and the V1 training
+  assets are unchanged.
+- Base model: `minimax-m3.1-flash:cloud`, served locally through Ollama v0.40.0 on the
+  OpenAI-compatible endpoint at `127.0.0.1:11434/v1`. This is a cloud model and is a
+  ceiling reference, not a candidate for daily local use.
+- Suite: the ten-task practical suite in `tasks/core.json`, repo mode, one attempt per
+  task, `max_tokens: 8192`, no repair loop, no manual scoring applied yet.
+- Result: **10/10 objective validation passing**, every task category at 1/1, zero parse
+  failures, zero timeouts, every `finish_reason` of `stop`. Per-task timings ranged from
+  9.8 to 96.9 seconds.
+- Comparison: the historical Qwen2.5-Coder-7B run passed 4/10 on the same suite at
+  `max_tokens: 1024`. The suite therefore separates a weak model from a strong one, and
+  the 7B result is not an artefact of a mis-specified suite.
+- Observations, endpoint behaviour measured on this machine:
+  - `think` is accepted by the endpoint and silently ignored. It must not be sent as a
+    setting that is expected to apply.
+  - `reasoning_effort` is the only reasoning control that changed behaviour. On
+    `qwen3.5:9b` it cut reasoning output from 3,548 characters to 112.
+  - A `reasoning` field is returned on some responses and absent on others. The extractor
+    must treat its absence as normal and must never merge it into `content`.
+  - `options.num_ctx` in the request body has no effect. The served context must be read
+    from `ollama ps` or `/api/ps` and recorded, not assumed.
+  - `qwen3.5:9b` was observed at `context_length: 262144`, `100% GPU`, occupying
+    15,280,436,673 bytes of VRAM against a 6.6 GB on-disk model. The KV cache at a long
+    context is roughly double the weight footprint, so context length dominates the
+    memory budget on this machine.
+  - `/usr/bin/sandbox-exec` is available, so agent-mode isolation is feasible.
+  - `OPENCODE_CONFIG` is honoured by OpenCode v1.18.35 and is **additive**, not a
+    replacement. A generated config supplies a target provider but does not remove the
+    user's existing providers or global plugins. Model targeting by filtered query works;
+    directory isolation does not.
+- Observations, suite calibration: every task needed at least 238 and up to 3,602
+  completion tokens, and the reasoning channel ran to 22,250 characters on the hardest
+  task. The harness default of 1024 tokens is below what half the suite requires. All
+  local candidates must be evaluated at one identical, generous token budget, and that
+  budget must be part of the comparison key.
+- Open question resolved by an external measurement: an independent 24 GB Apple Silicon
+  machine reports that `qwen3.8:27b` runs out of GPU memory once a 20K-token prompt
+  arrives, while `gpt-oss:20b` loads fully onto the GPU. This is not a measurement from
+  this machine and must be re-verified here, but it makes `gpt-oss:20b` the first
+  candidate to test and `qwen3.8:27b` the most likely to be ineligible on this hardware.
+- Agent-mode feasibility: a full agent-driven run was executed on a temporary copy of the
+  `result-summary` fixture using the cloud model through OpenCode. `opencode run` exited
+  0, the harness's independent validation passed, and only `summary.py` was modified. The
+  transcript shows 6 `bash`, 2 `read`, and 1 `write` tool calls, and includes per-message
+  token accounting with `cache.read` and `cache.write`. The agent discovered that
+  `unittest discover` does not work against `tests/` without a package marker and adapted
+  its command, which is genuine developer behaviour rather than a single-shot generation.
+  Wall clock was 447.6 seconds for the one task, against 47.8 seconds for the same task in
+  JSON repo mode, so agent mode costs roughly an order of magnitude more time. Agent mode
+  is therefore feasible but should be applied to a representative subset of tasks, not
+  the whole suite, and it is expected to be impractical on a slow local 27B model.
+- Decision: quality ranking and operational eligibility are recorded as two separate
+  axes. A candidate that cannot hold a 64K context on this machine is excluded from
+  daily-use consideration regardless of its benchmark quality. Manual 0/1/2 scores for
+  this ceiling run are still outstanding and must be supplied by a reviewer before the
+  ceiling is used as a rubric anchor.
+
+## 2026-10-21: harness rebuilt for candidate evaluation
+
+- Decision: the Qwen3.5-9B candidate was discarded as unsuitable for the intended tasks,
+  and the evaluation harness was rebuilt so that the larger candidates can be run
+  overnight with one command. No training was started. The frozen 30-task benchmark and
+  the V1 training assets are unchanged.
+- Harness changes: result schema version 2 with a deliberate comparison key; streaming
+  endpoint access with first-token timing; a closed failure taxonomy; robust JSON
+  recovery that tolerates reasoning preambles, code fences, and prose wrappers; withheld
+  tests for all ten tasks; agent-driven repository mode; and a comparison report with
+  run identity, failure-mode, and category breakdowns.
+- Withheld tests: every task now carries a `hidden` directory that is excluded from the
+  prompt and from the agent workspace, and is copied in only after a change is applied.
+  The suite hash includes hidden files, so two suites differing only in a hidden file are
+  never treated as the same suite. All ten tasks' hidden tests were verified to pass
+  against reference implementations, proving they are satisfiable and not ambiguous.
+- Verification run against `minimax-m3.1-flash:cloud` on the revised harness, one attempt
+  per task, `max_tokens: 8192`: **9 of 10 saved, 1 unparseable**, 9 of 10 public and
+  withheld validation passing, 10 of 10 transport valid, average 51.96 seconds and 44.45
+  tokens per second, average reasoning 11,199 characters.
+- The single failure, `web-search`, is informative rather than a harness defect. The
+  model produced 40,214 characters of reasoning, hit the 8,192-token limit with
+  `finish_reason: length`, and emitted an empty answer. It was classified `unparseable`
+  rather than `timeout`, correctly distinguishing a model that ran out of budget from one
+  that failed to follow the protocol. This is direct evidence that a thinking model can
+  exhaust the answer budget on reasoning alone, so `max_tokens` must be generous and
+  identical across every candidate.
+- Agent mode verified end to end against the same model: OpenCode ran for 255 seconds,
+  exited 0, modified only `summary.py`, and both the public and withheld validation
+  passed. The transcript is captured in the record. Agent mode is roughly five times
+  slower than JSON repo mode for the same task, so it is intended for a representative
+  subset of tasks rather than the full suite.
+- Comparison safety verified: two runs whose metadata differ in `max_tokens` are refused
+  with the differing field named, rather than producing a wrong comparison.
+- Next step: pull `gpt-oss:20b` as the first candidate, serve it with
+  `OLLAMA_CONTEXT_LENGTH=64000`, confirm the served context in `ollama ps`, then follow
+  `docs/nightly_runbook.md`.
+- Artefacts: `docs/cloud_run/ceiling_suite.py` and `docs/cloud_run/ceiling_suite.json` for
+  the run, `docs/cloud_run/probe_endpoint.py` and `docs/cloud_run/probe_reasoning.py` for
+  the endpoint probes, `docs/cloud_run/ocprobe/` for the OpenCode configuration probes,
+  and `docs/local_coder_spec.md` for the full specification and these findings.
+
 ## 2026-10-07: training paused for local model selection
 
 - Decision: pause custom training while evaluating available local coding models on realistic repository tasks.
