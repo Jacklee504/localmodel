@@ -2,17 +2,20 @@
 
 **Training status: paused pending evaluation of existing local models.** The V1 training script and frozen 30-task benchmark are preserved for possible later use.
 
-The practical model-selection suite is in [tasks/README.md](tasks/README.md), with its method in [docs/evaluation_method.md](docs/evaluation_method.md). Configure a locally installed model or running OpenAI-compatible endpoint in `config/models.json`. No weights are downloaded automatically.
+The practical model-selection suite is in [tasks/README.md](tasks/README.md), with its method in [docs/evaluation_method.md](docs/evaluation_method.md). Configure a locally installed model or running OpenAI-compatible endpoint in [config/models.json](config/models.json). No weights are downloaded automatically.
+
+**To evaluate a candidate model, follow [docs/nightly_runbook.md](docs/nightly_runbook.md).** It covers pulling the model, setting the context length, verifying the served context, running the suite, scoring, comparing, and reclaiming disk.
 
 ```sh
 .venv/bin/python scripts/evaluate.py tasks
-.venv/bin/python scripts/evaluate.py run --model qwen25_7b --mode response
-.venv/bin/python scripts/evaluate.py run --model qwen25_7b --mode repo
-.venv/bin/python scripts/evaluate.py score results/qwen25_7b/RUN_ID --task config-parse --score 1 --notes 'Missing validation' --failure 'ignored requirement' --corrections 0
-.venv/bin/python scripts/evaluate.py compare results/qwen25_7b/RUN_A results/qwen35_9b/RUN_B --output reports/comparison.md
+.venv/bin/python scripts/evaluate.py models
+.venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode repo --repeats 3
+.venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode agent --task result-summary
+.venv/bin/python scripts/evaluate.py score results/gpt_oss_20b/RUN_ID --task config-parse --score 1 --notes 'Missing validation' --failure ignored_requirement --additional-prompts 0 --reviewer local-user
+.venv/bin/python scripts/evaluate.py compare results/gpt_oss_20b/RUN_A results/qwen38_27b/RUN_B --output reports/comparison.md
 ```
 
-Each run has a unique directory under `results/`. Repository mode validates applied changes in a temporary fixture copy and captures a diff. Response mode records text and timing only. Scores are entered manually. Comparison requires matching suites and modes; see [reports/model_selection.md](reports/model_selection.md) for the pending final decision.
+Each run has a unique directory under `results/`. Repository mode validates applied changes in a temporary fixture copy and captures a diff. Agent mode lets OpenCode make the edit, then applies the same validation. Response mode records text and timing only. Scores are entered manually. Comparison requires matching suites, modes, and generation settings, and refuses to compare runs that differ. See [reports/model_selection.md](reports/model_selection.md) for the pending final decision.
 
 ## Earlier V1 experiment
 
