@@ -154,6 +154,24 @@ For each run record date, Git commit, base model, adapter/version, dataset versi
 - Reviewer calibration is still outstanding. The specification requires the cloud run to
   be scored twice, independently, with at least 90 percent exact agreement, before local
   candidate runs begin. That has not been done.
+- Three further gaps from the specification were closed after the initial audit:
+  - **Agent-mode allowlist enforcement.** The agent previously had its changes collected
+    only for allowlisted files, so a modification to any other path was invisible. The
+    harness now compares the whole workspace against the pristine fixture and records
+    `modified_files`, `untouched_files`, and `unexpected_paths`. Any change outside the
+    allowlist is classified `disallowed_path` and fails the task. Four tests cover this,
+    including the case of a new file outside the allowlist.
+  - **A comparison report that aggregates attempts.** The previous report made one column
+    per run, so three attempts of one model appeared as three models. The report now
+    groups by mode and then by model key, aggregates repeated attempts, reports majority
+    task success and mixed-score tasks, and separates response, repository, and agent
+    results into their own sections. A response-mode run is never shown with validation.
+  - **The optional repair loop.** `--repair-attempts 1` or `2` retries a failed task with
+    a prompt containing the original files, the previous response, the failure, the
+    current diff, and the capped validation output. Each attempt runs in a fresh copy of
+    the fixture, so attempts are independent. Withheld test source is never included in
+    the prompt, though withheld validation output may be. It is off by default. Verified
+    end to end: a deliberately failing first attempt was repaired and the task recovered.
 - Artefacts: `docs/cloud_run/ceiling_suite.py` and `docs/cloud_run/ceiling_suite.json` for
   the run, `docs/cloud_run/probe_endpoint.py` and `docs/cloud_run/probe_reasoning.py` for
   the endpoint probes, `docs/cloud_run/ocprobe/` for the OpenCode configuration probes,

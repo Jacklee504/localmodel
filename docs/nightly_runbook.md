@@ -154,6 +154,15 @@ Useful flags:
 | `--task ID` | all tasks | Repeat the flag to select several. |
 | `--report PATH` | none | Write the JSON summary to a file. |
 
+To let the model retry a failed task, add `--repair-attempts 1` or `2`. The repair runs in
+a fresh copy of the fixture, so each attempt is judged independently, and it stops at the
+first attempt that passes. It is off by default because it roughly doubles the cost of a
+failing task.
+
+```sh
+.venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode repo --repair-attempts 1
+```
+
 ## 6. Watch the run
 
 Each task prints a line as it completes:
@@ -237,6 +246,11 @@ Record how many extra prompts the task needed, if you did a repair:
 The comparison refuses to run if the runs are not comparable, and names the differing
 field. A difference in `max_tokens` is the most common cause. Do not work around it by
 editing metadata. Re-run one candidate under the same settings instead.
+
+The report groups runs by mode and then by model, so three attempts of one model become
+one column with the attempts aggregated, not three separate columns. It also separates
+response, repository, and agent mode into their own sections, so a response-mode run is
+never reported as if it had validation.
 
 To keep a reviewable copy of a run in the repository, export it. The export contains the
 metadata, scores, failure taxonomy, validation results, timings, and a patch of the
