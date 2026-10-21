@@ -6,3 +6,6 @@ results/*
 __pycache__/
 *.pyc
 *.class
+docs/_hooktest*.md
+docs/_probe*.md
+docs/cloud_run/
