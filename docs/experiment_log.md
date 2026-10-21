@@ -143,6 +143,17 @@ For each run record date, Git commit, base model, adapter/version, dataset versi
 - Verification: the one-command runner was exercised end to end against the cloud model
   on the `quick`, `documentation`, and `complex` suites. The `quick` suite gave 3 of 3
   validation and 3 of 3 withheld passing.
+- Bulk scoring and tracked export added, closing the last two commands the specification
+  required. `score-sheet` validates an entire sheet before writing anything, rejects
+  unknown failure categories and out-of-range scores, leaves omitted tasks unreviewed,
+  refuses to overwrite an existing score without `--replace`, and writes each record
+  through a temporary file so an interrupted write cannot corrupt it. `export` writes a
+  reviewable `summary.json`, `summary.md`, and `changes.patch` without the raw model
+  responses, which stay ignored under `results/`. The one-command runner gained
+  `--write-score-sheet` so a template can be produced from a finished run.
+- Reviewer calibration is still outstanding. The specification requires the cloud run to
+  be scored twice, independently, with at least 90 percent exact agreement, before local
+  candidate runs begin. That has not been done.
 - Artefacts: `docs/cloud_run/ceiling_suite.py` and `docs/cloud_run/ceiling_suite.json` for
   the run, `docs/cloud_run/probe_endpoint.py` and `docs/cloud_run/probe_reasoning.py` for
   the endpoint probes, `docs/cloud_run/ocprobe/` for the OpenCode configuration probes,

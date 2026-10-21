@@ -179,6 +179,23 @@ contaminated. Record that in the run notes.
 
 ## 7. Score the results
 
+The runner can write a score sheet template for you:
+
+```sh
+.venv/bin/python scripts/benchmark.py --model gpt_oss_20b --suites all \
+  --write-score-sheet reports/sheets/gpt_oss_20b.json
+```
+
+Fill in the `score` for each task, then apply the whole sheet at once:
+
+```sh
+.venv/bin/python scripts/evaluate.py score-sheet reports/sheets/gpt_oss_20b.json
+```
+
+Add `--dry-run` to check the sheet without writing. Tasks you leave out stay unreviewed.
+The sheet is validated in full before anything is written, so a bad category or an
+out-of-range score is rejected rather than half applied.
+
 Scores are manual, on the same 0/1/2 scale for every candidate. Score each task:
 
 ```sh
@@ -220,6 +237,17 @@ Record how many extra prompts the task needed, if you did a repair:
 The comparison refuses to run if the runs are not comparable, and names the differing
 field. A difference in `max_tokens` is the most common cause. Do not work around it by
 editing metadata. Re-run one candidate under the same settings instead.
+
+To keep a reviewable copy of a run in the repository, export it. The export contains the
+metadata, scores, failure taxonomy, validation results, timings, and a patch of the
+changes, but not the raw model responses, which stay ignored under `results/`.
+
+```sh
+.venv/bin/python scripts/evaluate.py export results/gpt_oss_20b/RUN_ID \
+  --output reports/runs/RUN_ID
+```
+
+That creates `summary.json`, `summary.md`, and `changes.patch`.
 
 ## 9. Reclaim disk
 

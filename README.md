@@ -21,10 +21,12 @@ That checks the model is present, checks the served context, runs the suites, an
 .venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode repo --repeats 3
 .venv/bin/python scripts/evaluate.py run --model gpt_oss_20b --mode agent --task result-summary
 .venv/bin/python scripts/evaluate.py score results/gpt_oss_20b/RUN_ID --task config-parse --score 1 --notes 'Missing validation' --failure ignored_requirement --additional-prompts 0 --reviewer local-user
+.venv/bin/python scripts/evaluate.py score-sheet reports/sheets/gpt_oss_20b.json
+.venv/bin/python scripts/evaluate.py export results/gpt_oss_20b/RUN_ID --output reports/runs/RUN_ID
 .venv/bin/python scripts/evaluate.py compare results/gpt_oss_20b/RUN_A results/qwen38_27b/RUN_B --output reports/comparison.md
 ```
 
-Each run has a unique directory under `results/`. Repository mode validates applied changes in a temporary fixture copy and captures a diff. Agent mode lets OpenCode make the edit, then applies the same validation. Response mode records text and timing only. Scores are entered manually. Comparison requires matching suites, modes, and generation settings, and refuses to compare runs that differ. See [reports/model_selection.md](reports/model_selection.md) for the pending final decision.
+Each run has a unique directory under `results/`. Repository mode validates applied changes in a temporary fixture copy and captures a diff. Agent mode lets OpenCode make the edit, then applies the same validation. Response mode records text and timing only. Scores are entered manually, one task at a time or through a bulk score sheet. Comparison requires matching suites, modes, and generation settings, and refuses to compare runs that differ. See [reports/model_selection.md](reports/model_selection.md) for the pending final decision.
 
 ## Earlier V1 experiment
 
