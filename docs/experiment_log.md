@@ -101,6 +101,48 @@ For each run record date, Git commit, base model, adapter/version, dataset versi
 - Next step: pull `gpt-oss:20b` as the first candidate, serve it with
   `OLLAMA_CONTEXT_LENGTH=64000`, confirm the served context in `ollama ps`, then follow
   `docs/nightly_runbook.md`.
+
+## 2026-10-21: expanded suite and one-command benchmark runner
+
+- Decision: expand the task suite from ten to nineteen tasks so that candidates can be
+  benchmarked by work type, and add a single-command runner so a candidate can be
+  evaluated without assembling the steps by hand. The Qwen3.5-9B candidate remains
+  discarded. No training was started. The frozen 30-task benchmark and the V1 training
+  assets are unchanged.
+- New tasks, ten, covering the work types the user asked about: complex file
+  implementation (`capts-model`, `capts-risk-score`, `capts-change-event`), documentation
+  (`capts-document-module`, `capts-write-docstring`), test writing (`capts-test-model`),
+  debugging (`capts-cache-key`), refactoring (`capts-dedupe-severity`), and TypeScript
+  (`capts-normalise-deal`).
+- Provenance: the `capts-` tasks are derived from the CAPTS project in
+  `~/Other/Me/Projects/FYP/FourthYearProject`, and `capts-normalise-deal` and
+  `capts-test-model` from the DealLedger MCP server in
+  `~/Other/Me/Projects/mysite/deal-ledger-mcp`. Only minimum necessary context was
+  copied, with no credentials, no configuration, no generated files, and no large
+  sections of the original repositories. Each task's `source` field records its origin.
+- Every new task has withheld tests, and all nineteen tasks' withheld tests were verified
+  to pass against reference implementations, so they are satisfiable rather than
+  impossible. Six defects were found and fixed during that verification, all in the
+  assertions rather than the harness.
+- Suites defined in `config/suites.json`: `all`, `implementation`, `complex`,
+  `debugging`, `documentation`, `tests`, `refactoring`, `web`, `java`, `specification`,
+  `difficult`, `routine`, and `quick`. The `difficult` and `routine` subsets are the
+  pre-registered ones, unchanged.
+- One-command runner added at `scripts/benchmark.py`. It checks the model is installed,
+  checks the served context against the required context, runs the requested suites, and
+  prints a summary with validation counts, failure kinds, timings, and throughput. It
+  never downloads weights and never deletes anything.
+- **Token budget corrected from 8192 to 32768 for all candidates.** Measured on this
+  machine against the cloud model, the `complex` suite failed 3 of 3 at 8192 with
+  `finish_reason: length` and zero answer characters, because the model spent the entire
+  budget on reasoning. At 32768, one of the three passed and the other two still
+  exhausted the budget after 141,719 and 146,509 characters of reasoning. This is a
+  reasoning-loop pathology in the model, not only a budget problem, and it is a direct
+  argument against a 27B dense model on this hardware. The `documentation` suite passed
+  2 of 2 at 8192, so the budget needed depends on the task type.
+- Verification: the one-command runner was exercised end to end against the cloud model
+  on the `quick`, `documentation`, and `complex` suites. The `quick` suite gave 3 of 3
+  validation and 3 of 3 withheld passing.
 - Artefacts: `docs/cloud_run/ceiling_suite.py` and `docs/cloud_run/ceiling_suite.json` for
   the run, `docs/cloud_run/probe_endpoint.py` and `docs/cloud_run/probe_reasoning.py` for
   the endpoint probes, `docs/cloud_run/ocprobe/` for the OpenCode configuration probes,
