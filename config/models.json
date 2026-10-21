@@ -1,8 +1,116 @@
 {
+  "schema_version": 1,
   "models": {
-    "qwen25_7b": {"name": "Qwen2.5-Coder-7B-Instruct-4bit", "provider": "mlx", "path": "models/qwen2.5-coder-7b-instruct-4bit", "quantization": "4-bit", "runtime": "mlx-lm"},
-    "qwen35_9b": {"name": "Qwen3.5-9B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3.5-9b", "quantization": null, "runtime": null},
-    "qwen38_27b": {"name": "Qwen3.8-27B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3.8-27b", "quantization": null, "runtime": null},
-    "qwen3_coder_30b": {"name": "Qwen3-Coder-30B-A3B", "provider": "openai_compatible", "base_url": "http://localhost:8000/v1", "model": "qwen3-coder-30b-a3b", "quantization": null, "runtime": null}
+    "qwen25_7b": {
+      "name": "Qwen2.5-Coder-7B-Instruct-4bit",
+      "provider": "mlx",
+      "base_url": null,
+      "model": null,
+      "api_key_env": null,
+      "path": "models/qwen2.5-coder-7b-instruct-4bit",
+      "quantization": "4-bit",
+      "runtime": "mlx-lm 0.32.0",
+      "generation": {
+        "common": {"max_tokens": 2048, "temperature": 0.2, "top_p": 0.9},
+        "model": {"reasoning_effort": null, "think": null, "preserve_thinking": null}
+      },
+      "context": {"num_ctx": null, "model_max": null, "kv_cache_type": null},
+      "download_size": "Existing local MLX model; exact size not recorded",
+      "ollama": {"pull_command": null, "launch_command": null, "serve_command": null},
+      "opencode": {"provider": "ollama-local", "model": null},
+      "notes": "Reference workflow model only. Not a selection candidate."
+    },
+    "gpt_oss_20b": {
+      "name": "GPT-OSS 20B",
+      "provider": "openai_compatible",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "model": "gpt-oss:20b",
+      "api_key_env": null,
+      "path": null,
+      "quantization": "MXFP4",
+      "runtime": "ollama 0.40.0",
+      "generation": {
+        "common": {"max_tokens": 8192, "temperature": 0.2, "top_p": 0.9},
+        "model": {"reasoning_effort": "medium", "think": null, "preserve_thinking": null}
+      },
+      "context": {"num_ctx": 64000, "model_max": 131072, "kv_cache_type": null},
+      "download_size": "about 14 GB",
+      "ollama": {
+        "pull_command": "ollama pull gpt-oss:20b",
+        "launch_command": "ollama launch opencode --model gpt-oss:20b",
+        "serve_command": "OLLAMA_CONTEXT_LENGTH=64000 ollama serve"
+      },
+      "opencode": {"provider": "ollama-local", "model": "gpt-oss:20b"},
+      "notes": "First candidate to test. 14 GB download, 3.6B active parameters, 128K context. An independent 24 GB measurement reports it loads fully onto the GPU, unlike the dense 27B. Confirm the served context in ollama ps before trusting any run."
+    },
+    "qwen38_27b": {
+      "name": "Qwen3.8 27B",
+      "provider": "openai_compatible",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "model": "qwen3.8:27b",
+      "api_key_env": null,
+      "path": null,
+      "quantization": "Q4_K_M",
+      "runtime": "ollama 0.40.0",
+      "generation": {
+        "common": {"max_tokens": 8192, "temperature": 0.2, "top_p": 0.9},
+        "model": {"reasoning_effort": null, "think": true, "preserve_thinking": false}
+      },
+      "context": {"num_ctx": 64000, "model_max": 262144, "kv_cache_type": null},
+      "download_size": "about 18 GB",
+      "ollama": {
+        "pull_command": "ollama pull qwen3.8:27b",
+        "launch_command": "ollama launch opencode --model qwen3.8:27b",
+        "serve_command": "OLLAMA_CONTEXT_LENGTH=64000 ollama serve"
+      },
+      "opencode": {"provider": "ollama-local", "model": "qwen3.8:27b"},
+      "notes": "Dense 27B, 18 GB. Highest quality candidate but the most likely to exhaust GPU memory at a 64K context on 24 GB. An independent measurement reports an out-of-memory failure once a 20K prompt arrives. Attempt only after the harness is proven, and expect a memory-limit result rather than a quality result if it fails to load."
+    },
+    "qwen3_coder_30b": {
+      "name": "Qwen3-Coder 30B A3B",
+      "provider": "openai_compatible",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "model": "qwen3-coder:30b",
+      "api_key_env": null,
+      "path": null,
+      "quantization": "Q4_K_M",
+      "runtime": "ollama 0.40.0",
+      "generation": {
+        "common": {"max_tokens": 8192, "temperature": 0.2, "top_p": 0.9},
+        "model": {"reasoning_effort": null, "think": null, "preserve_thinking": null}
+      },
+      "context": {"num_ctx": 64000, "model_max": 262144, "kv_cache_type": null},
+      "download_size": "about 19 GB",
+      "ollama": {
+        "pull_command": "ollama pull qwen3-coder:30b",
+        "launch_command": "ollama launch opencode --model qwen3-coder:30b",
+        "serve_command": "OLLAMA_CONTEXT_LENGTH=64000 ollama serve"
+      },
+      "opencode": {"provider": "ollama-local", "model": "qwen3-coder:30b"},
+      "notes": "MoE 30B with 3.3B activated, 19 GB. Agentic and coder-specialised, so it is expected to be materially faster than the dense 27B at similar quality. This is the candidate that would justify Outcome B, a single model good enough for all work."
+    },
+    "minimax_m31_flash_cloud": {
+      "name": "MiniMax M3.1 Flash (cloud)",
+      "provider": "openai_compatible",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "model": "minimax-m3.1-flash:cloud",
+      "api_key_env": null,
+      "path": null,
+      "quantization": null,
+      "runtime": "ollama 0.40.0",
+      "generation": {
+        "common": {"max_tokens": 8192, "temperature": 0.2, "top_p": 0.9},
+        "model": {"reasoning_effort": null, "think": null, "preserve_thinking": null}
+      },
+      "context": {"num_ctx": null, "model_max": null, "kv_cache_type": null},
+      "download_size": "cloud, no local weights",
+      "ollama": {
+        "pull_command": "ollama pull minimax-m3.1-flash:cloud",
+        "launch_command": "ollama launch opencode --model minimax-m3.1-flash:cloud",
+        "serve_command": null
+      },
+      "opencode": {"provider": "ollama-local", "model": "minimax-m3.1-flash:cloud"},
+      "notes": "Cloud ceiling reference only, never a local recommendation. Measured 10/10 validation passing on the ten-task suite on 2026-10-21. Excluded from local ranking because it is remote."
+    }
   }
 }
